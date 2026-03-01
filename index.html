@@ -240,7 +240,7 @@ function App() {
   // Canonical: Fort = lv.fort(+1) + STA(0) = +1 → sheet +2 → misc +1
   //            Ref  = lv.ref(+1)  + AGI(+1) = +2 → sheet +1 → misc -1
   //            Will = lv.will(+1) + PER(0)  = +1 → sheet +1 → misc  0
-  const SAVE_MISC = {Fortitude: 1, Reflex: 0, Willpower: 0};
+  const SAVE_MISC = {Fortitude: 0, Reflex: 0, Willpower: 0};
   const saves = useMemo(() => {
     const base = {
       Fortitude: lv.fort + abilMod("Stamina") + SAVE_MISC.Fortitude,
@@ -256,9 +256,9 @@ function App() {
   const rangedAtk = abilMod("Agility") + lv.atk;
 
   const weapons = useMemo(() => [
-    {name:"Mithral Longsword",dmg:"1d8",melee:true,notes:"+2 weapon, non-iron",totalAtk:meleeAtk+2,totalDmg:`1d8+${abilMod("Strength")+2}`},
-    {name:"Wolfspear",dmg:"1d8",melee:true,notes:"+1, +1 init, +1 will",totalAtk:meleeAtk+1,totalDmg:`1d8+${abilMod("Strength")+1}`},
-    {name:"Longbow",dmg:"1d6",melee:false,range:"70/140/210",notes:"+1, 36 arrows",totalAtk:rangedAtk+1,totalDmg:"1d6+1"},
+    {name:"Mithral Longsword",dmg:"1d8",melee:true,notes:"+1 magic, non-iron",totalAtk:meleeAtk+1,totalDmg:`1d8+${abilMod("Strength")+1}`},
+    {name:"Wolfspear",dmg:"1d8",melee:true,notes:"+1 magic, +1 init, +1 will",totalAtk:meleeAtk+1,totalDmg:`1d8+${abilMod("Strength")+1}`},
+    {name:"Longbow",dmg:"1d6",melee:false,range:"70/140/210",notes:"36 arrows",totalAtk:rangedAtk,totalDmg:"1d6"},
   ], [meleeAtk, rangedAtk, abilMod]);
 
   // Spells with lost state merged
