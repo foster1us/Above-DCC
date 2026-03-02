@@ -36,10 +36,41 @@ const {useState, useCallback, useMemo} = React;
 const MOD_TABLE = {3:-3,4:-2,5:-2,6:-1,7:-1,8:-1,9:0,10:0,11:0,12:0,13:1,14:1,15:1,16:2,17:2,18:3};
 const ABILITY_NAMES = ["Strength","Agility","Stamina","Personality","Intelligence","Luck"];
 const AB = {Strength:"STR",Agility:"AGI",Stamina:"STA",Personality:"PER",Intelligence:"INT",Luck:"LCK"};
+// Crit Table II (Wizards/Elves) - indexed by crit die + level
+const CRIT_TABLE_II = {
+  1:"Force of blow pushes target back 5'.",2:"Strike to body. +1d3 damage.",
+  3:"Strike to leg. +1d4 dmg, half speed 1d4 rds.",4:"Strike to arm. +1d4 dmg, drop held item.",
+  5:"Strike to head. +1d6 dmg, stunned 1 rd.",6:"Strike to head. +1d6 dmg, helmet destroyed or +1d6 more.",
+  7:"Strike to body. +2d6 dmg.",8:"Strike to head. +2d6 dmg, stunned 1d3 rds.",
+  9:"Strike to arm. +2d6 dmg, arm broken.",10:"Strike to leg. +2d6 dmg, leg broken, fall prone.",
+  11:"Strike to body. +3d6 dmg, knocked unconscious 1d6 rds.",12:"Strike to head. +3d6 dmg, blinded 1d6 rds.",
+  13:"Body strike. +3d6 dmg, lose 1 STA permanently.",14:"Head strike. +4d6 dmg, skull cracked, deafened permanently.",
+  15:"Devastating. +4d6 dmg, lose 1d4 from random ability permanently.",16:"Sever arm. +4d6 dmg, bleed 1 hp/rd.",
+  17:"Sever leg. +5d6 dmg, bleed 1 hp/rd.",18:"Head. +5d6 dmg, one eye destroyed.",
+  19:"Killing blow. +6d6 dmg, Fort save vs death.",20:"Instant death. +8d6 dmg (Fort save: +8d6 only).",
+};
+// Fumble Table - indexed by fumble die roll
+const FUMBLE_TABLE = {
+  0:"Lose next action recovering.",1:"Slip. -2 next attack.",2:"Stumble. Half speed next rd.",
+  3:"Trip. Fall prone, lose next rd.",4:"Weapon tangled. Lose next rd freeing it.",
+  5:"Weapon knocked 1d10+5' away.",6:"Weapon dropped at feet.",7:"Off-balance. -2 all rolls next rd.",
+  8:"Opponent gets free attack.",9:"Opponent gets +2 to next attack vs you.",
+  10:"Weapon breaks! (Magic weapons: DC 10+roll save.)",11:"Hit self. Roll normal damage.",
+  12:"Hit nearest ally. Roll normal damage.",13:"Hit self. Roll crit damage.",
+  14:"Weapon shattered. (Magic: DC 15 save.)",15:"Hit self + fall prone + weapon dropped.",
+  16:"Hit self for max damage + stunned 1 rd.",
+};
 const SAVE_AB = {Fortitude:"Stamina",Reflex:"Agility",Willpower:"Personality"};
 const mod = s => s<=3?-3:s>=18?3:(MOD_TABLE[s]||0);
 const fm = m => m>=0?`+${m}`:`${m}`;
 const rollDie = s => Math.floor(Math.random()*s)+1;
+function rollDice(notation) {
+  const m = notation.match(/(\d+)?d(\d+)([+-]\d+)?/);
+  if (!m) return {total:0,rolls:[]};
+  const count = parseInt(m[1]||"1"), sides = parseInt(m[2]), bonus = parseInt(m[3]||"0");
+  const rolls = Array.from({length:count}, ()=>rollDie(sides));
+  return {total: rolls.reduce((a,b)=>a+b,0)+bonus, rolls};
+}
 
 function parseRoll(notation) {
   const tokens = (notation||"").match(/[+-]?[^+-]+/g)||[];
@@ -294,13 +325,22 @@ function App() {
     const r = rollDie(20);
     const total = r + w.totalAtk;
     const crit = r >= 20, fumble = r === 1;
+    let special = null, critResult = null, fumbleResult = null;
+    if (crit) {
+      const cd = rollDice(lv.cd);
+      const critTotal = cd.total + char.level;
+      critResult = CRIT_TABLE_II[Math.min(critTotal, 20)] || CRIT_TABLE_II[20];
+      special = `⚡ CRITICAL HIT! ${lv.cd}+${char.level} = ${critTotal}: ${critResult}`;
+    } else if (fumble) {
+      const fd = rollDice(char.armorOn ? lv.fd : "1d4");
+      fumbleResult = FUMBLE_TABLE[Math.min(fd.total, 16)] || FUMBLE_TABLE[16];
+      special = `💀 FUMBLE! ${char.armorOn?lv.fd:"1d4"} = ${fd.total}: ${fumbleResult}`;
+    }
     addLog({
       label:`Attack: ${w.name}`, notation:`1d20${fm(w.totalAtk)}`, rolls:[r], total,
-      special: crit ? `CRITICAL HIT! Roll ${lv.cd} on Table ${lv.ct}` : fumble ? `FUMBLE! Roll ${lv.fd}` : null,
-      good: crit
+      special, good: crit
     });
-    if (!crit && !fumble) doRoll(w.totalDmg, `Damage: ${w.name}`);
-  }, [addLog, doRoll, lv]);
+  }, [addLog, lv, char.level, char.armorOn]);
 
   const rollSpellCheck = useCallback((idx) => {
     const sp = spells[idx];
@@ -413,10 +453,10 @@ function App() {
               const m=abilMod(ab); const cls=m>0?C.green:m<0?C.red:C.dim;
               return <div key={ab} style={S.card}>
                 <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:10,color:C.dim,letterSpacing:2}}>{AB[ab]}</div>
-                  {edit ? <input type="number" value={char.ab[ab]} onChange={e=>upd(c=>{c.ab[ab]=parseInt(e.target.value)||3;})} style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:26,color:C.text,background:C.goldDim,border:`1px solid ${C.gold}`,borderRadius:4,textAlign:"center",width:55}}/> : <div style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:26}}>{char.ab[ab]}</div>}
-                  <div style={{fontSize:15,fontWeight:700,color:cls}}>{fm(m)}</div>
-                  <div style={{fontSize:10,color:C.dim,marginTop:2}}>{ab}</div>
+                  <div style={{fontSize:12,color:C.gold,letterSpacing:1,fontWeight:700,fontFamily:"'Cinzel',serif"}}>{AB[ab]}</div>
+                  <div style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:28,color:cls}}>{fm(m)}</div>
+                  {edit ? <input type="number" value={char.ab[ab]} onChange={e=>upd(c=>{c.ab[ab]=parseInt(e.target.value)||3;})} style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:14,color:C.dim,background:C.goldDim,border:`1px solid ${C.gold}`,borderRadius:4,textAlign:"center",width:40}}/> : <div style={{fontSize:14,color:C.dim}}>{char.ab[ab]}</div>}
+                  <div style={{fontSize:11,color:C.faint,marginTop:1}}>{ab}</div>
                 </div>
               </div>;
             })}
@@ -457,9 +497,9 @@ function App() {
           <Section>Derived Stats</Section>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
             {[
-              {v:fm(meleeAtk),l:"Melee Atk",f:`Atk ${fm(lv.atk)} + STR ${fm(abilMod("Strength"))}`},
-              {v:fm(rangedAtk),l:"Ranged Atk",f:`Atk ${fm(lv.atk)} + AGI ${fm(abilMod("Agility"))}`},
-              {v:fm(spellCheck),l:"Spell Check",f:"Per character sheet"},
+              {v:fm(meleeAtk),l:"Melee Atk",f:`Atk ${fm(lv.atk)} + STR ${fm(abilMod("Strength"))}`,click:()=>doRoll(`1d20${fm(meleeAtk)}`,"Melee Attack")},
+              {v:fm(rangedAtk),l:"Ranged Atk",f:`Atk ${fm(lv.atk)} + AGI ${fm(abilMod("Agility"))}`,click:()=>doRoll(`1d20${fm(rangedAtk)}`,"Ranged Attack")},
+              {v:fm(spellCheck),l:"Spell Check",f:"Per character sheet",click:()=>doRoll(`1d20${fm(spellCheck)}`,"Spell Check")},
               {v:lv.ad,l:"Action Dice",click:()=>doRoll(lv.ad,"Action Die")},
               {v:lv.cd,l:`Crit Die / ${lv.ct}`,click:()=>doRoll(lv.cd,"Crit Die")},
               {v:char.armorOn?lv.fd:"—",l:"Fumble Die",f:char.armorOn?"Scale Mail":"No armor",click:char.armorOn?()=>doRoll(lv.fd,"Fumble Die"):undefined},
