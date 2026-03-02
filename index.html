@@ -36,29 +36,53 @@ const {useState, useCallback, useMemo} = React;
 const MOD_TABLE = {3:-3,4:-2,5:-2,6:-1,7:-1,8:-1,9:0,10:0,11:0,12:0,13:1,14:1,15:1,16:2,17:2,18:3};
 const ABILITY_NAMES = ["Strength","Agility","Stamina","Personality","Intelligence","Luck"];
 const AB = {Strength:"STR",Agility:"AGI",Stamina:"STA",Personality:"PER",Intelligence:"INT",Luck:"LCK"};
-// Crit Table II (Wizards/Elves) - indexed by crit die + level
+// Crit Table II: All Thieves and Elves - indexed by crit die + level
 const CRIT_TABLE_II = {
-  1:"Force of blow pushes target back 5'.",2:"Strike to body. +1d3 damage.",
-  3:"Strike to leg. +1d4 dmg, half speed 1d4 rds.",4:"Strike to arm. +1d4 dmg, drop held item.",
-  5:"Strike to head. +1d6 dmg, stunned 1 rd.",6:"Strike to head. +1d6 dmg, helmet destroyed or +1d6 more.",
-  7:"Strike to body. +2d6 dmg.",8:"Strike to head. +2d6 dmg, stunned 1d3 rds.",
-  9:"Strike to arm. +2d6 dmg, arm broken.",10:"Strike to leg. +2d6 dmg, leg broken, fall prone.",
-  11:"Strike to body. +3d6 dmg, knocked unconscious 1d6 rds.",12:"Strike to head. +3d6 dmg, blinded 1d6 rds.",
-  13:"Body strike. +3d6 dmg, lose 1 STA permanently.",14:"Head strike. +4d6 dmg, skull cracked, deafened permanently.",
-  15:"Devastating. +4d6 dmg, lose 1d4 from random ability permanently.",16:"Sever arm. +4d6 dmg, bleed 1 hp/rd.",
-  17:"Sever leg. +5d6 dmg, bleed 1 hp/rd.",18:"Head. +5d6 dmg, one eye destroyed.",
-  19:"Killing blow. +6d6 dmg, Fort save vs death.",20:"Instant death. +8d6 dmg (Fort save: +8d6 only).",
+  0:"Miss! Hesitation costs you the perfect strike!",
+  1:"Strike misses critical organs. +2d3 damage.",
+  2:"Slash to head removes foe's ear. +1d6 damage, nasty scar.",
+  3:"Clean strike to back. +2d6 damage.",
+  4:"Blow to chest staggers foe. Make an immediate free attack.",
+  5:"Blow pierces foe's kidneys. +3d3 damage, foe stunned 1 round.",
+  6:"Foe dazed by ferocious attack; speed and actions halved.",
+  7:"Strike to chest grazes vital organ. +3d4 damage.",
+  8:"Strike cuts a line down foe's face. Blinded by blood 1d4 rounds.",
+  9:"Foe stumbles over own limbs, falling prone. Make another attack.",
+  10:"Masterful strike! +2d6 damage.",
+  11:"Strike severs larynx. Foe reduced to making wet fish noises.",
+  12:"Savage strike! Foe must Fort save (DC 10+PC level) or faint from pain.",
+  13:"Foe disoriented by quick strikes. -4 penalty to attack rolls 1d4 rounds.",
+  14:"Strike to head. Foe must Fort save (DC 10+PC level) or fall unconscious.",
+  15:"Blow drives foe to ground. +2d6 damage, enemy knocked prone.",
+  16:"Lightning-fast shot pops foe's eye like a grape. Permanently blinded in one eye, no actions 1d3 rounds.",
+  17:"Strike pierces lung. +2d6 damage, foe can take only one action next turn.",
+  18:"Devastating strike to back of head. +1d8 damage, foe must Fort save (DC 10+PC level) or fall unconscious.",
+  19:"Attack severs major artery. +1d10 damage, foe must Fort save (DC 10+PC level) or fall unconscious from shock and massive blood loss.",
+  20:"Throat slashed! +2d6 damage, foe must Fort save (DC 13+PC level) or die in 1d4 rounds.",
+  21:"Strike pierces spinal column. +3d6 damage, foe must Fort save (DC 15+PC level) or suffer paralysis.",
+  22:"Chest skewered, spearing organs. +2d6 damage, foe must Fort save (DC 13+PC level) or die in 1d4 rounds.",
+  23:"Strike through ear canal enters brain. +2d6 damage, foe must Fort save (DC 15+PC level) or die instantly.",
+  24:"Strike through heart! +3d6 damage, foe must Fort save (DC 20+PC level) or die instantly.",
 };
-// Fumble Table - indexed by fumble die roll
+// Table 4-2: Fumbles - indexed by fumble die roll
 const FUMBLE_TABLE = {
-  0:"Lose next action recovering.",1:"Slip. -2 next attack.",2:"Stumble. Half speed next rd.",
-  3:"Trip. Fall prone, lose next rd.",4:"Weapon tangled. Lose next rd freeing it.",
-  5:"Weapon knocked 1d10+5' away.",6:"Weapon dropped at feet.",7:"Off-balance. -2 all rolls next rd.",
-  8:"Opponent gets free attack.",9:"Opponent gets +2 to next attack vs you.",
-  10:"Weapon breaks! (Magic weapons: DC 10+roll save.)",11:"Hit self. Roll normal damage.",
-  12:"Hit nearest ally. Roll normal damage.",13:"Hit self. Roll crit damage.",
-  14:"Weapon shattered. (Magic: DC 15 save.)",15:"Hit self + fall prone + weapon dropped.",
-  16:"Hit self for max damage + stunned 1 rd.",
+  0:"Miss wildly but miraculously cause no other damage.",
+  1:"Incompetent blow makes you the laughingstock of the party. No other damage.",
+  2:"Trip. DC 10 Ref save or spend next round prone.",
+  3:"Weapon comes loose in hand. Grip disrupted. -2 penalty next attack.",
+  4:"Weapon damaged: bowstring breaks, hilt falls off, mechanism jams. 10 min to repair, useless for now.",
+  5:"Trip and fall, wasting this action. Prone, must use action to stand next round.",
+  6:"Weapon entangled in armor. Spend next round untangling. Armor bonus -1 until 10 min refit.",
+  7:"Drop your weapon. Must retrieve or draw a new one on next action.",
+  8:"Smash weapon against solid object. Mundane weapons ruined; magical weapons not affected.",
+  9:"Stumble and leave yourself wide open. Next enemy attack gets +2 bonus.",
+  10:"Armor joints seize up, freezing you in place. Cannot move or attack 1d3 rounds. Unarmored: not affected.",
+  11:"Wild swing leaves you off balance. -4 penalty to next attack.",
+  12:"Inadvertently swing at random ally in range. Make attack roll against them.",
+  13:"Trip badly. Fall hard, 1d3 damage. Prone, must use next round to stand.",
+  14:"Like a turtle on its back — land upside down, flailing. Fight from prone next round before recovering.",
+  15:"Wound yourself, taking normal damage.",
+  16:"Strike yourself for normal damage +1. Fall on back, unable to right yourself until DC 16 Agility check.",
 };
 const SAVE_AB = {Fortitude:"Stamina",Reflex:"Agility",Willpower:"Personality"};
 const mod = s => s<=3?-3:s>=18?3:(MOD_TABLE[s]||0);
@@ -250,6 +274,7 @@ function App() {
   const abilMod = useCallback(n => mod(char.ab[n]), [char.ab]);
   const luckMod = useMemo(() => mod(char.currentLuck), [char.currentLuck]);
   const frozenLuckMod = useMemo(() => mod(char.ab.Luck), [char.ab.Luck]); // Frozen at creation for Lethal Blow
+  const armorFD = char.armorOn ? "1d12" : "1d4"; // Scale mail = 1d12, unarmored = 1d4
   // Base spell check: +4 per character sheet (CL 2 + INT +1 + misc +1)
   const spellCheck = 4;
   
@@ -311,9 +336,19 @@ function App() {
 
   const doRoll = useCallback((notation, label) => {
     const r = parseRoll(notation);
+    // Auto-lookup crit/fumble table results
+    if (label === "Crit Die") {
+      const critTotal = r.total + char.level;
+      const result = CRIT_TABLE_II[Math.min(critTotal, 20)] || CRIT_TABLE_II[20];
+      r.special = `Table ${lv.ct}, roll ${r.total}+${char.level}=${critTotal}: ${result}`;
+      r.good = true;
+    } else if (label === "Fumble Die") {
+      const result = FUMBLE_TABLE[Math.min(r.total, 16)] || FUMBLE_TABLE[16];
+      r.special = `Fumble ${r.total}: ${result}`;
+    }
     addLog({label, ...r});
     return r;
-  }, [addLog]);
+  }, [addLog, char.level, lv]);
 
   const rollSave = useCallback((name) => {
     const bonus = saves[name];
@@ -332,9 +367,9 @@ function App() {
       critResult = CRIT_TABLE_II[Math.min(critTotal, 20)] || CRIT_TABLE_II[20];
       special = `⚡ CRITICAL HIT! ${lv.cd}+${char.level} = ${critTotal}: ${critResult}`;
     } else if (fumble) {
-      const fd = rollDice(char.armorOn ? lv.fd : "1d4");
+      const fd = rollDice(char.armorOn ? armorFD : "1d4");
       fumbleResult = FUMBLE_TABLE[Math.min(fd.total, 16)] || FUMBLE_TABLE[16];
-      special = `💀 FUMBLE! ${char.armorOn?lv.fd:"1d4"} = ${fd.total}: ${fumbleResult}`;
+      special = `💀 FUMBLE! ${char.armorOn?armorFD:"1d4"} = ${fd.total}: ${fumbleResult}`;
     }
     addLog({
       label:`Attack: ${w.name}`, notation:`1d20${fm(w.totalAtk)}`, rolls:[r], total,
@@ -502,7 +537,7 @@ function App() {
               {v:fm(spellCheck),l:"Spell Check",f:"Per character sheet",click:()=>doRoll(`1d20${fm(spellCheck)}`,"Spell Check")},
               {v:lv.ad,l:"Action Dice",click:()=>doRoll(lv.ad,"Action Die")},
               {v:lv.cd,l:`Crit Die / ${lv.ct}`,click:()=>doRoll(lv.cd,"Crit Die")},
-              {v:char.armorOn?lv.fd:"—",l:"Fumble Die",f:char.armorOn?"Scale Mail":"No armor",click:char.armorOn?()=>doRoll(lv.fd,"Fumble Die"):undefined},
+              {v:char.armorOn?armorFD:"—",l:"Fumble Die",f:char.armorOn?"Scale Mail":"No armor",click:char.armorOn?()=>doRoll(armorFD,"Fumble Die"):undefined},
             ].map((d,i)=>(
               <div key={i} style={{...S.card,textAlign:"center",cursor:d.click?"pointer":"default"}} onClick={d.click}>
                 <div style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:18,color:d.click?C.green:C.text}}>{d.v}</div>
@@ -536,7 +571,7 @@ function App() {
           <div style={S.card}>
             <div style={{display:"flex",gap:16,flexDirection:"column",marginBottom:8}}>
               {[
-                {key:"armorOn",label:`Mithral Scale Mail (+4 AC, Fumble ${lv.fd}, Check -4)`},
+                {key:"armorOn",label:`Mithral Scale Mail (+4 AC, Fumble ${armorFD}, Check -4)`},
                 {key:"shieldOn",label:"Bronze Lion Shield (+2 AC, +2 Will, -2 enemy morale, sacrifice on crit to negate damage)"},
                 {key:"wolfspearEquipped",label:"Wolfspear equipped (+1 Init, +1 Will)"},
               ].map(({key,label})=>(
@@ -573,7 +608,7 @@ function App() {
             <div style={{fontSize:13,color:C.dim,lineHeight:1.6}}>
               <strong style={{color:C.gold}}>Action Dice:</strong> {lv.ad}<br/>
               <strong style={{color:C.gold}}>Critical Hits:</strong> On natural 20, roll <span style={{cursor:"pointer",color:C.green,textDecoration:"underline"}} onClick={()=>doRoll(lv.cd,"Crit Die")}>{lv.cd}</span> on Table {lv.ct} + level<br/>
-              <strong style={{color:C.gold}}>Fumbles:</strong> On natural 1, roll <span style={{cursor:"pointer",color:C.red,textDecoration:"underline"}} onClick={()=>doRoll(lv.fd,"Fumble Die")}>{lv.fd}</span> on fumble table
+              <strong style={{color:C.gold}}>Fumbles:</strong> On natural 1, roll <span style={{cursor:"pointer",color:C.red,textDecoration:"underline"}} onClick={()=>doRoll(armorFD,"Fumble Die")}>{armorFD}</span> on fumble table
             </div>
           </div>
         </>}
@@ -855,6 +890,40 @@ function App() {
             </div>
             {expanded[`mech${i}`] && <p style={{fontSize:13,color:"#a09888",lineHeight:1.6,marginTop:6,borderTop:`1px solid ${C.border}`,paddingTop:6}}>{item.d}</p>}
           </div>)}
+
+          <Section>Crit Table II: Thieves & Elves</Section>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead><tr style={{borderBottom:`2px solid ${C.gold}`}}>
+                <th style={{padding:"4px 6px",color:C.gold,fontFamily:"'Cinzel',serif",fontSize:11,textAlign:"left",width:40}}>Roll</th>
+                <th style={{padding:"4px 6px",color:C.gold,fontFamily:"'Cinzel',serif",fontSize:11,textAlign:"left"}}>Result</th>
+              </tr></thead>
+              <tbody>{Object.entries(CRIT_TABLE_II).map(([k,v])=>(
+                <tr key={k} style={{borderBottom:`1px solid ${C.border}`}}>
+                  <td style={{padding:"4px 6px",fontWeight:700,color:C.green,fontFamily:"'Cinzel',serif"}}>{k}</td>
+                  <td style={{padding:"4px 6px",color:C.text,lineHeight:1.4}}>{v}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div style={{fontSize:11,color:C.dim,marginTop:4,fontStyle:"italic"}}>Roll = crit die + character level. Your current crit: {lv.cd}+{char.level}.</div>
+
+          <Section>Table 4-2: Fumbles</Section>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead><tr style={{borderBottom:`2px solid ${C.gold}`}}>
+                <th style={{padding:"4px 6px",color:C.gold,fontFamily:"'Cinzel',serif",fontSize:11,textAlign:"left",width:40}}>Roll</th>
+                <th style={{padding:"4px 6px",color:C.gold,fontFamily:"'Cinzel',serif",fontSize:11,textAlign:"left"}}>Result</th>
+              </tr></thead>
+              <tbody>{Object.entries(FUMBLE_TABLE).map(([k,v])=>(
+                <tr key={k} style={{borderBottom:`1px solid ${C.border}`}}>
+                  <td style={{padding:"4px 6px",fontWeight:700,color:C.red,fontFamily:"'Cinzel',serif"}}>{k}{parseInt(k)===16?"+":""}</td>
+                  <td style={{padding:"4px 6px",color:C.text,lineHeight:1.4}}>{v}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div style={{fontSize:11,color:C.dim,marginTop:4,fontStyle:"italic"}}>Fumble die depends on armor: {armorFD} (Mithral Scale Mail). Unarmored = 1d4.</div>
 
           <div style={{marginTop:16,padding:12,background:"rgba(201,168,76,0.05)",border:`1px solid rgba(201,168,76,0.15)`,borderRadius:8,fontSize:12,color:C.faint,fontStyle:"italic"}}>
             Reference compiled from DCC RPG core rules and ADBB Elfland Edition. For complete rules text, consult the core rulebook.
